@@ -115,6 +115,30 @@ def home():
     return render_template("home.html", books=books)
 
 
+@app.route("/book/<int:book_id>/delete", methods=["POST"])
+def delete_book(book_id):
+    # Find the book by its ID
+    book = Book.query.get_or_404(book_id)
+
+    # Get the author associated with the book
+    author = book.author
+
+    # Delete the book
+    db.session.delete(book)
+    db.session.commit()
+
+    # Check if the author has any other books left
+    if not author.books:  # If the author has no more books
+        db.session.delete(author)  # Delete the author
+        db.session.commit()
+
+    # Flash a success message
+    flash(f'Book "{book.title}" was deleted successfully!', "success")
+
+    # Redirect to the homepage
+    return redirect(url_for("home"))
+
+
 # Run the Flask app
 if __name__ == "__main__":
     app.run(debug=True)
