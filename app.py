@@ -27,11 +27,19 @@ def add_author():
         date_of_death = request.form["date_of_death"]
 
         # Convert birth_date and date_of_death to date objects (if provided)
-        birth_date_obj = datetime.strptime(birth_date, '%Y-%m-%d').date() if birth_date else None
-        date_of_death_obj = datetime.strptime(date_of_death, '%Y-%m-%d').date() if date_of_death else None
+        birth_date_obj = (
+            datetime.strptime(birth_date, "%Y-%m-%d").date() if birth_date else None
+        )
+        date_of_death_obj = (
+            datetime.strptime(date_of_death, "%Y-%m-%d").date()
+            if date_of_death
+            else None
+        )
 
         # Create a new Author instance
-        new_author = Author(name=name, birth_date=birth_date_obj, date_of_death=date_of_death_obj)
+        new_author = Author(
+            name=name, birth_date=birth_date_obj, date_of_death=date_of_death_obj
+        )
 
         # Add author to the database
         db.session.add(new_author)
@@ -82,15 +90,28 @@ def add_book():
 # Home page route
 @app.route("/")
 def home():
-    # Sorting logic
+    # Get query parameters for sorting and searching
     sort_by = request.args.get("sort_by", "title")  # Default to sorting by title
-    if sort_by == "author":
-        books = (
-            Book.query.join(Author).order_by(Author.name).all()
-        )  # Sort by author name
-    else:
-        books = Book.query.order_by(Book.title).all()  # Sort by book title
+    keyword = request.args.get("keyword", "")  # Get the keyword search query
 
+    # Query for books with optional search
+    if keyword:
+        # Perform a case-insensitive search on book title and author name
+        books = (
+            Book.query.join(Author)
+            .filter(
+                (Book.title.ilike(f"%{keyword}%")) | (Author.name.ilike(f"%{keyword}%"))
+            )
+            .all()
+        )
+    else:
+        # If no keyword, just sort by the chosen criteria
+        if sort_by == "author":
+            books = Book.query.join(Author).order_by(Author.name).all()
+        else:
+            books = Book.query.order_by(Book.title).all()
+
+    # Render the home page with the books
     return render_template("home.html", books=books)
 
 
